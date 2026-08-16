@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Expense Tracker</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f4f4f4;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+}
+
+.container{
+    width:100%;
+    max-width:500px;
+    background:#fff;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 5px 20px rgba(0,0,0,.1);
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#333;
+}
+
+.balance-box{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.balance-box h2{
+    margin-top:10px;
+    color:#2c3e50;
+}
+
+.summary{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.income,
+.expense{
+    flex:1;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+}
+
+.income{
+    background:#d4edda;
+}
+
+.expense{
+    background:#f8d7da;
+}
+
+.income p{
+    color:green;
+    font-weight:bold;
+}
+
+.expense p{
+    color:red;
+    font-weight:bold;
+}
+
+h3{
+    margin:15px 0 10px;
+}
+
+ul{
+    list-style:none;
+    max-height:250px;
+    overflow-y:auto;
+}
+
+ul li{
+    background:#fafafa;
+    margin-bottom:10px;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-radius:8px;
+}
+
+.plus{
+    border-right:5px solid green;
+}
+
+.minus{
+    border-right:5px solid red;
+}
+
+.delete-btn{
+    background:red;
+    color:white;
+    border:none;
+    padding:5px 10px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+input{
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:6px;
+}
+
+button{
+    padding:12px;
+    border:none;
+    border-radius:6px;
+    background:#3498db;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#2980b9;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>💰 Personal Expense Tracker</h1>
+
+    <div class="balance-box">
+        <h3>Your Balance</h3>
+        <h2 id="balance">$0.00</h2>
+    </div>
+
+    <div class="summary">
+        <div class="income">
+            <h4>Income</h4>
+            <p id="income">+$0.00</p>
+        </div>
+
+        <div class="expense">
+            <h4>Expense</h4>
+            <p id="expense">-$0.00</p>
+        </div>
+    </div>
+
+    <h3>Transaction History</h3>
+    <ul id="list"></ul>
+
+    <h3>Add Transaction</h3>
+
+    <form id="form">
+        <input
+            type="text"
+            id="text"
+            placeholder="Description"
+            required
+        >
+
+        <input
+            type="number"
+            id="amount"
+            placeholder="Amount (+income, -expense)"
+            required
+        >
+
+        <button type="submit">
+            Add Transaction
+        </button>
+    </form>
+</div>
+
+<script>
+const balance = document.getElementById("balance");
+const income = document.getElementById("income");
+const expense = document.getElementById("expense");
+const list = document.getElementById("list");
+const form = document.getElementById("form");
+const text = document.getElementById("text");
+const amount = document.getElementById("amount");
+
+let transactions =
+JSON.parse(localStorage.getItem("transactions")) || [];
+
+function saveTransactions(){
+    localStorage.setItem(
+        "transactions",
+        JSON.stringify(transactions)
+    );
+}
+
+function addTransactionDOM(transaction){
+
+    const sign =
+    transaction.amount < 0 ? "minus" : "plus";
+
+    const li = document.createElement("li");
+
+    li.classList.add(sign);
+
+    li.innerHTML = `
+        <span>${transaction.text}</span>
+
+        <div>
+            <strong>$${transaction.amount}</strong>
+
+            <button
+            class="delete-btn"
+            onclick="removeTransaction(${transaction.id})">
+            X
+            </button>
+        </div>
+    `;
+
+    list.appendChild(li);
+}
+
+function updateValues(){
+
+    const amounts =
+    transactions.map(item => item.amount);
+
+    const total =
+    amounts.reduce((acc,item)=>acc+item,0);
+
+    const inc =
+    amounts
+    .filter(item=>item>0)
+    .reduce((acc,item)=>acc+item,0);
+
+    const exp =
+    amounts
+    .filter(item=>item<0)
+    .reduce((acc,item)=>acc+item,0);
+
+    balance.innerText =
+    "$" + total.toFixed(2);
+
+    income.innerText =
+    "+$" + inc.toFixed(2);
+
+    expense.innerText =
+    "-$" + Math.abs(exp).toFixed(2);
+}
+
+function init(){
+
+    list.innerHTML = "";
+
+    transactions.forEach(addTransactionDOM);
+
+    updateValues();
+}
+
+function addTransaction(e){
+
+    e.preventDefault();
+
+    if(
+        text.value.trim()==="" ||
+        amount.value.trim()===""
+    ){
+        return;
+    }
+
+    const transaction = {
+        id: Date.now(),
+        text: text.value,
+        amount: +amount.value
+    };
+
+    transactions.push(transaction);
+
+    saveTransactions();
+
+    init();
+
+    text.value="";
+    amount.value="";
+}
+
+function removeTransaction(id){
+
+    transactions =
+    transactions.filter(
+        item => item.id !== id
+    );
+
+    saveTransactions();
+
+    init();
+}
+
+form.addEventListener(
+    "submit",
+    addTransaction
+);
+
+init();
+</script>
+
+</body>
+</html>
